@@ -1,0 +1,141 @@
+# Reproducible Research: Peer Assessment 1
+
+## Loading and preprocessing the data
+
+````{r setoptions,echo=FALSE}
+knitr::opts_chunk$set(echo=TRUE, results = "hide")
+````
+
+
+```{r ,echo=TRUE ,results="hide"}
+
+activityData <- read.csv("./activity.csv", header = TRUE, 
+                         na.strings="NA", sep = ",")
+````
+
+## What is mean total number of steps taken per day?
+
+### we get rid of the NA's 
+````{r}
+activityData1 <- activityData[!is.na(activityData[,1]),]
+````
+
+1. Calculate the total number of steps taken per day
+
+````{r}
+Tstepday <- aggregate(activityData1$steps, 
+                      by = list(date = activityData1$date), sum)
+colnames(Tstepday) <- c("date", "totalstep")
+head(Tstepday)
+````
+
+2. Histogram of the total number of steps taken per day
+
+````{r}
+hist(Tstepday$totalstep, xlab = "Number of steps per day", col = "red",
+     main= "Total number of steps per day")
+````
+
+3. the mean and median of the total number of steps taken per day
+
+````{r}
+meanT <- mean(Tstepday$totalstep)
+meanT
+medianT <- median(Tstepday$totalstep)
+medianT
+````
+
+## What is the average daily activity pattern?
+
+1. time series plot
+
+````{r}
+avstepInt <- aggregate(activityData1$steps, 
+                      by = list(interval = activityData1$interval), mean)
+colnames(avstepInt) <- c("interval", "averageStep")
+intertime <- strptime(paste(avstepInt$interval %/% 100,avstepInt$interval %% 100
+                            ,sep = ":"), "%H:%M")
+plot(intertime, avstepInt$averageStep, type = "l", xlab = "temps", 
+     ylab = "", main = "5-minute average of number of steps across all days")
+````
+
+2. Maximum number of steps 5-minute interval
+
+````{r}
+avstepInt$interval[avstepInt$averageStep == avstepInt$averageStep[which.max(avstepInt$averageStep)]]
+````
+
+## Imputing missing values
+
+1. the total number of rows with NAs
+
+````{r}
+NumberNA <- nrow(activityData[is.na(activityData[,1]),])
+NumberNA
+````
+
+2. filling the NA's with the mean of the day
+
+###mean per day
+
+````{r}
+meanday <- aggregate(activityData1$steps, 
+                       by = list(date = activityData1$date), mean)
+meanday$x <- floor(meanday$x)
+datafilled <- activityData
+````
+
+3. replace NA by the mean of the day
+
+````{r}
+for(i in 1:length(datafilled$date)) {
+        for(date in meanday$date) {
+                if(is.na(datafilled$steps[i]))
+                        datafilled$steps[i] <- meanday$x[meanday$date == date]
+        }
+}
+````
+
+4. Histogram of the total number of steps taken each day
+
+````{r}
+Tstepdayf <- aggregate(datafilled$steps, 
+                      by = list(date = datafilled$date), sum)
+colnames(Tstepdayf) <- c("date", "totalstep")
+hist(Tstepdayf$totalstep, xlab = "Number of steps per day", col = "red",
+     main= "Total number of steps per day")
+````
+
+````{r}
+meandayf <- mean(Tstepdayf$totalstep)
+meandayf
+medianf <- median(Tstepdayf$totalstep)
+medianf
+````
+
+## the impact is that lower the mean/median
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+1.  factor variable in the dataset with two levels - "weekday" and "weekend"
+
+````{r}
+library(timeDate)
+datafilled$day <- isWeekday(as.Date(datafilled$date))
+
+datafilled$day <- factor(datafilled$day, levels = c(TRUE, FALSE), 
+             labels = c("weekday", "weekend"))
+````
+
+2. Make a panel plot containing a time series plot per weekday and weekend
+
+````{r}
+library(lattice)
+averageday <- aggregate(datafilled$steps, 
+               by = list(interval = datafilled$interval, day = datafilled$day)
+               , mean)
+
+colnames(averageday) <- c("interval", "day", "averageStep")
+xyplot(averageStep ~ interval | day, data=averageday, layout=c(1,2),
+       type = "l", ylab = "Number of step")
+````
