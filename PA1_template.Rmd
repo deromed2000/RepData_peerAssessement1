@@ -3,7 +3,7 @@
 ## Loading and preprocessing the data
 
 ````{r setoptions,echo=FALSE}
-knitr::opts_chunk$set(echo=TRUE, results = "hide")
+knitr::opts_chunk$set(echo=TRUE, results = "asis", cache=TRUE)
 ````
 
 
@@ -15,14 +15,14 @@ activityData <- read.csv("./activity.csv", header = TRUE,
 
 ## What is mean total number of steps taken per day?
 
-### we get rid of the NA's 
+Here we get rid of the NA's 
 ````{r}
 activityData1 <- activityData[!is.na(activityData[,1]),]
 ````
 
 1. Calculate the total number of steps taken per day
 
-````{r}
+````{r, results=TRUE}
 Tstepday <- aggregate(activityData1$steps, 
                       by = list(date = activityData1$date), sum)
 colnames(Tstepday) <- c("date", "totalstep")
@@ -31,25 +31,27 @@ head(Tstepday)
 
 2. Histogram of the total number of steps taken per day
 
-````{r}
+````{r figure1,results="hide"}
 hist(Tstepday$totalstep, xlab = "Number of steps per day", col = "red",
      main= "Total number of steps per day")
+dev.copy(png, file="./figure/figure1.png",width = 480, height = 480)
+dev.off()
 ````
 
 3. the mean and median of the total number of steps taken per day
 
-````{r}
+````{r, results=TRUE}
 meanT <- mean(Tstepday$totalstep)
-meanT
+sprintf("The mean of total number of steps per day is %.3f" , meanT)
 medianT <- median(Tstepday$totalstep)
-medianT
+sprintf("The median of total number of steps per day is %s ", medianT)
 ````
 
 ## What is the average daily activity pattern?
 
-1. time series plot
+1. time series plot of average of number of steps per interval across all days
 
-````{r}
+````{r figure2,results="hide"}
 avstepInt <- aggregate(activityData1$steps, 
                       by = list(interval = activityData1$interval), mean)
 colnames(avstepInt) <- c("interval", "averageStep")
@@ -57,12 +59,15 @@ intertime <- strptime(paste(avstepInt$interval %/% 100,avstepInt$interval %% 100
                             ,sep = ":"), "%H:%M")
 plot(intertime, avstepInt$averageStep, type = "l", xlab = "temps", 
      ylab = "", main = "5-minute average of number of steps across all days")
+dev.copy(png, file="./figure/figure2.png",width = 480, height = 480)
+dev.off()
 ````
 
 2. Maximum number of steps 5-minute interval
 
 ````{r}
-avstepInt$interval[avstepInt$averageStep == avstepInt$averageStep[which.max(avstepInt$averageStep)]]
+MnStepI <- avstepInt$interval[avstepInt$averageStep == avstepInt$averageStep[which.max(avstepInt$averageStep)]]
+sprintf("the interval in which we have the max number of step is %s ", MnStepI)
 ````
 
 ## Imputing missing values
@@ -71,13 +76,12 @@ avstepInt$interval[avstepInt$averageStep == avstepInt$averageStep[which.max(avst
 
 ````{r}
 NumberNA <- nrow(activityData[is.na(activityData[,1]),])
-NumberNA
+sprintf("the total number of NA is %s ", NumberNA)
 ````
 
 2. filling the NA's with the mean of the day
 
-###mean per day
-
+Hers we calculate the mean of number of steps per day
 ````{r}
 meanday <- aggregate(activityData1$steps, 
                        by = list(date = activityData1$date), mean)
@@ -98,28 +102,32 @@ for(i in 1:length(datafilled$date)) {
 
 4. Histogram of the total number of steps taken each day
 
-````{r}
+````{r figure3,results="hide"}
 Tstepdayf <- aggregate(datafilled$steps, 
                       by = list(date = datafilled$date), sum)
 colnames(Tstepdayf) <- c("date", "totalstep")
 hist(Tstepdayf$totalstep, xlab = "Number of steps per day", col = "red",
      main= "Total number of steps per day")
+dev.copy(png, file="./figure/figure3.png",width = 480, height = 480)
+dev.off()
 ````
+
+ Here we calculate the mean and median total number of steps taken per day
 
 ````{r}
 meandayf <- mean(Tstepdayf$totalstep)
-meandayf
+sprintf("The mean of total number of steps per day with filling is %.3f ", meandayf)
 medianf <- median(Tstepdayf$totalstep)
-medianf
+sprintf("The median of total number of steps per day with filling is %s ", medianf)
 ````
 
-## the impact is that lower the mean/median
+## the impact of filling tne NAs is that lower the mean and median
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-1.  factor variable in the dataset with two levels - "weekday" and "weekend"
+1.  factor variable in the dataset with two levels "weekday" and "weekend"
 
-````{r}
+````{r, echo=FALSE}
 library(timeDate)
 datafilled$day <- isWeekday(as.Date(datafilled$date))
 
@@ -129,7 +137,7 @@ datafilled$day <- factor(datafilled$day, levels = c(TRUE, FALSE),
 
 2. Make a panel plot containing a time series plot per weekday and weekend
 
-````{r}
+````{r figure4,results="hide"}
 library(lattice)
 averageday <- aggregate(datafilled$steps, 
                by = list(interval = datafilled$interval, day = datafilled$day)
@@ -138,4 +146,12 @@ averageday <- aggregate(datafilled$steps,
 colnames(averageday) <- c("interval", "day", "averageStep")
 xyplot(averageStep ~ interval | day, data=averageday, layout=c(1,2),
        type = "l", ylab = "Number of step")
+dev.copy(png, file="./figure/figure4.png",width = 480, height = 480)
+dev.off()
 ````
+
+## Conclusion :
+  we notice some differences between step activity in weekend and weekday: 
+  
+  * in weekend the activity starts slowly and later in the morning compared with            the weekday
+  * in the weekend the activity is more intense and more variable in the day[10H to 19H]
